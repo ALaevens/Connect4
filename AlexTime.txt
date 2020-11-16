@@ -1,0 +1,8 @@
+Week of November 16:
+    - Implement Connect4 Simulator. ~4.5 hours
+        - Build simulator so that implementing a new player just requires inheritance of the base Player class
+        - Implement basic HumanPlayer and RandomPlayer classes.
+        - Game checks for win and stops when a win is achieved
+        - connect4.py takes optional command line arguments for player type and board dimensions
+            - defaults to a 7 wide by 6 high board (based on a google image search)
+            - defaults to two human players
