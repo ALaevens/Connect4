@@ -102,7 +102,7 @@ class Board:
 
         for row in range(self.height):
             arrayStr = np.array2string(self.board[row], separator=" ")
-            arrayStr = arrayStr.replace(str(MARK_P1), "#")
+            arrayStr = arrayStr.replace(str(MARK_P1), "o")
             arrayStr = arrayStr.replace(str(MARK_P2), "+")
             arrayStr = arrayStr.replace(str(MARK_EMPTY), " ")
             print("|"+arrayStr[1:-1]+"|")

@@ -1,4 +1,4 @@
-CMPUT 355 Final Project
+CMPUT355 Project #4
 Fa20
 
 Group Name: Undecided
