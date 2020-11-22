@@ -17,6 +17,9 @@ class Board:
         self.board = np.full((self.height, self.width), MARK_EMPTY)
         self.winner = MARK_EMPTY
 
+        self.history = []
+        self.moves = 0
+
     """
         Board.getValidMoves():
             returns a list of columns that can still have chips placed in them
@@ -37,6 +40,8 @@ class Board:
             # if either conditions are true, the piece can fall no further
             if row == self.height-1 or self.board[row+1][col] != MARK_EMPTY:
                 self.board[row][col] = mark  # place piece
+                self.history.append((row, col))
+                self.moves += 1
                 self.checkWin(row, col)  # Check if the move was a winning move
                 return
 
