@@ -6,3 +6,7 @@ Week of November 16:
         - connect4.py takes optional command line arguments for player type and board dimensions
             - defaults to a 7 wide by 6 high board (based on a google image search)
             - defaults to two human players
+    
+    - Particpate in group 'Pair Progamming' using VSCode live share. ~6 hours
+
+    - Fight with negamax on my own. ~6 hours
