@@ -1,118 +1,110 @@
 import numpy as np
 import argparse
 import random
+import math
 
-MARK_EMPTY = 0
-MARK_P1 = 1
-MARK_P2 = 2
+from node import *
+from flags import *
 
-WINCOND_TERMINATE = 3
-WINCOND_TIE = 4
-
+def debugLog(*text):
+    if doDebugLog:
+        print(*text)
 
 class Board:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.board = np.full((self.height, self.width), MARK_EMPTY)
+        self.currentNode = Node(np.full((self.height, self.width), MARK_EMPTY))
         self.winner = MARK_EMPTY
 
         self.history = []
-        self.moves = 0
+
 
     """
         Board.getValidMoves():
             returns a list of columns that can still have chips placed in them
     """
     def getValidMoves(self):
-        validCols = []
-        for col in range(self.width):  # loop along top row
-            if self.board[0][col] == MARK_EMPTY:
-                validCols.append(col)  # mark empty spaces as valid
-        return validCols
+        return self.currentNode.getValidMoves()
 
     """
         Board.performMove()
             Simulate a drop of a piece into the board
     """
     def performMove(self, col, mark):
-        for row in range(self.height):
-            # if either conditions are true, the piece can fall no further
-            if row == self.height-1 or self.board[row+1][col] != MARK_EMPTY:
-                self.board[row][col] = mark  # place piece
-                self.history.append((row, col))
-                self.moves += 1
-                self.checkWin(row, col)  # Check if the move was a winning move
-                return
+        self.currentNode.simulateMove(col, mark)
 
-    """
-        Board.inBounds():
-            Check if a given row, col position is within the bounds of the board
-    """
-    def inBounds(self, row, col):
-        if row < 0 or row >= self.height:
-            return False
+        win, winner = self.currentNode.checkWin()
+        if win:
+            self.winner = winner
 
-        if col < 0 or col >= self.width:
-            return False
+    # negamax implementation based on wikipedia and minimax implementation
+    # that featured in https://www.youtube.com/watch?v=8392NJjj8s0&feature=youtu.be
+    def negaMax(self, node, depth, a, b, player):
+        validCols = node.getValidMoves()
+        winner = node.fullWinCheck()[1]
 
-        return True
+        opponent = int(not player-1) + 1 #ewww grosss... but it works :)
+        # decide what to do upon reaching max depth, finding a winner, or running out of valid moves
+        if depth == maxDepth or winner != None or len(validCols) == 0:
+            # if a winner has been found or there are no more valid moves
+            if winner != None or len(validCols) == 0:
+                # if the winner is the current player
+                if winner == player:
+                    # debug information
+                    debugLog("\t"*depth, "Terminus Reached, Returning", np.inf)
+                    return None, np.inf
+                # if the winner is not the current player
+                elif winner != player:
+                    debugLog("\t"*depth, "Terminus Reached, Returning", -np.inf)
+                    return None, -np.inf
+                else:
+                    debugLog("\t"*depth, "Terminus Reached, Returning", 0)
+                    return None, 0
+            else:
+                eval = node.evalPosition(player)
+                debugLog("\t"*depth, "Terminus Reached, Returning eval:", eval)
+                return None, eval
+        
+        value = -np.inf
+        column = random.choice(validCols)
+        colScoreMap = {}
+        for col in validCols:
+            node.simulateMove(col, player)
+            newScore = -self.negaMax(node, depth+1, -b, -a, opponent)[1]
+            debugLog("\t"*depth,"[P{}] {}: {}".format(player, col, newScore))
 
-    """
-        Board.checkWin():
-            Called by Board.performMove() when placing a piece. Only need to check the surrounding area of the
-            placed piece because that is the only move that could have possible contributed to a winning move
-    """
-    def checkWin(self, row, col):
-        continuations = [0, 0, 0, 0, 0, 0, 0]  # 0 = NE, 1 = E, 2 = SE, 3 = S, 4 = SW, 5 = W, 6 = NW
-        lines = [0, 0, 0, 0]  # 0: +'ve diagonal, 1: -'ve diagonal, 2: horizontal, 3: vertical
-
-        increments = [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
-
-        # get current player's mark
-        mark = self.board[row][col]
-        for direction in range(7):  # check all directions except up (cant possibly have a piece above a new piece)
-            incRow, incCol = increments[direction]
-            distance = 1
-
-            checkRow = incRow*distance + row
-            checkCol = incCol*distance + col
-            # iteratively check farther pieces from the dropped piece, count line length as distance
-            while self.inBounds(checkRow, checkCol) and self.board[checkRow][checkCol] == mark:
-                distance += 1
-                checkRow = incRow * distance + row
-                checkCol = incCol * distance + col
-
-            continuations[direction] = distance-1
-
-        # form the 4 possible lines
-        lines[0] = continuations[0] + continuations[4] + 1
-        lines[1] = continuations[2] + continuations[6] + 1
-        lines[2] = continuations[1] + continuations[5] + 1
-        lines[3] = continuations[3] + 1
-
-        # if a line of length >=4 has been formed, the player has one
-        if max(lines) >= 4:
-            self.winner = mark
-            return True
+            if newScore not in colScoreMap:
+                colScoreMap[newScore] = [col]
+            else:
+                colScoreMap[newScore].append(col)
+            
+            node.undoLastMove()
+            if newScore > value:
+                debugLog("\t"*depth,"Update previous value {} to {} for column {}".format(value, newScore, col))
+                value = newScore
+                column = col
+            
+            if value > a:
+                a = value
+            
+            if a >= b and not disableAB:
+                break
+        
+        if depth == 0:
+            print(colScoreMap)
+            maxVal = max(colScoreMap)
+            pick = random.choice(colScoreMap[maxVal])
+            return pick, maxVal
         else:
-            return False
+            return column, value    
 
     """
         Board.print():
              simply formats and prints the board to the screen
     """
     def print(self):
-        print(" " + " ".join(str(i) for i in range(self.width)))
-
-        for row in range(self.height):
-            arrayStr = np.array2string(self.board[row], separator=" ")
-            arrayStr = arrayStr.replace(str(MARK_P1), "o")
-            arrayStr = arrayStr.replace(str(MARK_P2), "+")
-            arrayStr = arrayStr.replace(str(MARK_EMPTY), " ")
-            print("|"+arrayStr[1:-1]+"|")
-
-        print("̅"*(self.width*2 + 1))
+        self.currentNode.print()
 
 
 class Player:
@@ -142,14 +134,25 @@ class RandomPlayer(Player):
     def makeMove(self):
         validChoices = self.boardRef.getValidMoves()
         col = validChoices[random.randint(0, len(validChoices)-1)]
-
+        
         print("Random Player chose column:", col)
         self.boardRef.performMove(col, self.mark)
 
-
-class ComputerPlayer(Player):
+class ComputerPlayer(Player):    
     def makeMove(self):
-        pass
+        bestCol, score = self.boardRef.negaMax(self.boardRef.currentNode, 0, -np.inf, np.inf, self.mark)
+        if score == np.inf:
+            print("Too easy!")
+        elif score == -np.inf:
+            print("The end is in sight... :(")
+
+        print("Computer player choses column",bestCol,"with score", score)
+        self.boardRef.performMove(bestCol, self.mark)
+
+
+def waitForInput():
+    if doSteps:
+        input("Press Enter to continue")
 
 
 def playOneGame(p1Type, p2Type):
@@ -161,20 +164,27 @@ def playOneGame(p1Type, p2Type):
     while board.winner == MARK_EMPTY:
         # Alternate players
         for i in range(2):
+
             print("_" * 30, "\n")
             if i == 0:
-                print("Player 1's Turn:\n")
-                board.print()
-                players[i].makeMove()
-                if board.winner != MARK_EMPTY:
-                    break
-
+                print("Player 1's Turn:")
+            
             elif i == 1:
-                print("Player 2's Turn:\n")
-                board.print()
-                players[i].makeMove()
-                if board.winner != MARK_EMPTY:
-                    break
+                print("Player 2's Turn:")
+
+            print("Current Board:\n")
+            board.print()
+
+            if len(board.getValidMoves()) == 0:
+                board.winner = WINCOND_TIE
+                print("Board is full without win.... TIE")
+                break
+
+            players[i].makeMove()
+            if board.winner != MARK_EMPTY:
+                break
+            
+            waitForInput()
 
     print("_" * 30, "\n\nFinal Board:")
     board.print()
@@ -187,22 +197,68 @@ def playOneGame(p1Type, p2Type):
         return MARK_P2
     elif board.winner == WINCOND_TIE:
         print("The game has tied")
-        return None
+        return WINCOND_TIE
     elif board.winner == WINCOND_TERMINATE:
         print("A player has cancelled the game")
-        return None
+        return WINCOND_TERMINATE
 
 
 # Receive commandline arguments
 parser = argparse.ArgumentParser(description="Simulate connect 4 games")
-parser.add_argument("-test", type=int, default=0, help="Define number of tests to simulate")
+parser.add_argument("-test", type=int, default=1, help="Define number of tests to simulate")
+parser.add_argument("-depth", type=int, default=4, help="Set Negamax search depth.")
 parser.add_argument("-p1", choices=["human", "random", "computer"], default="human", help="Define player 1 type")
 parser.add_argument("-p2", choices=["human", "random", "computer"], default="human", help="define player 2 type")
+parser.add_argument("-step", action="store_true", help="Single Step through turns")
+parser.add_argument("-debug", action="store_true", help="PRINT ALL THE THINGS")
+parser.add_argument("-disableAB", action="store_true", help="disable alphabeta pruning")
 parser.add_argument("width", type=int, nargs='?', default=7)
 parser.add_argument("height", type=int, nargs='?', default=6)
 
+# Parse arguments into globals
 commandLineArgs = vars(parser.parse_args())
-numTests = commandLineArgs["test"]  # Will be used to evaluate performance later
+numTests = commandLineArgs["test"]
+maxDepth = commandLineArgs["depth"]
+p1Type = commandLineArgs["p1"]
+p2Type = commandLineArgs["p2"]
+doSteps = commandLineArgs["step"]
+doDebugLog = commandLineArgs["debug"]
+disableAB = commandLineArgs["disableAB"]
+
+wins = [0, 0, 0] #P1, P2, Ties
 
 
-playOneGame(commandLineArgs["p1"], commandLineArgs["p2"])
+def printPerformance():
+    total = sum(wins)
+    if total == 0:
+        print("Not enough complete games to show performance")
+        return
+    
+    print("         ""0%"+" "*44+"100%")
+    print("         "+"-"*50)
+    
+    labels = ["P1 Wins", "P2 Wins", "Ties   "]
+    fills = ["o", "+", "#"]
+    for i in range(3):
+        barLen = math.floor((wins[i]/total)*50)
+        spaceLen = 49 - barLen
+        print("{}: {}|{}  {}".format(labels[i], fills[i]*barLen, " "*spaceLen, wins[i]))
+    
+    print("\nGames PLayed:",total)
+
+
+for i in range(numTests): # if numTests unspecified with arguments, default to 1 and play one game
+    try:
+        winner = playOneGame(p1Type, p2Type)
+    except KeyboardInterrupt:
+        winner = WINCOND_TERMINATE
+
+    if winner in [MARK_P1, MARK_P2]:
+        wins[winner-1] += 1
+    elif winner == WINCOND_TIE:
+        wins[2] += 1
+    elif winner == WINCOND_TERMINATE:
+        break
+
+print("\n\nFinal Performance")
+printPerformance()
