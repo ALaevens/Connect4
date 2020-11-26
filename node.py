@@ -86,10 +86,10 @@ class Node:
             placed piece because that is the only move that could have possible contributed to a winning move
     """
     def checkWin(self, move = None):
-        continuations = [0, 0, 0, 0, 0, 0, 0]  # 0 = NE, 1 = E, 2 = SE, 3 = S, 4 = SW, 5 = W, 6 = NW
+        continuations = [0, 0, 0, 0, 0, 0, 0, 0]  # 0 = NE, 1 = E, 2 = SE, 3 = S, 4 = SW, 5 = W, 6 = NW, 7 = N
         lines = [0, 0, 0, 0]  # 0: +'ve diagonal, 1: -'ve diagonal, 2: horizontal, 3: vertical
 
-        increments = [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+        increments = [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0)]
 
         row = col = mark = 0
         if move is None:
@@ -99,7 +99,7 @@ class Node:
 
         # get current player's mark
         mark = self.board[row][col]
-        for direction in range(7):  # check all directions except up (cant possibly have a piece above a new piece)
+        for direction in range(8):  # check all directions except up (cant possibly have a piece above a new piece)
             incRow, incCol = increments[direction]
             distance = 1
 
@@ -117,7 +117,7 @@ class Node:
         lines[0] = continuations[0] + continuations[4] + 1
         lines[1] = continuations[2] + continuations[6] + 1
         lines[2] = continuations[1] + continuations[5] + 1
-        lines[3] = continuations[3] + 1
+        lines[3] = continuations[3] + continuations[7] + 1
 
         # if a line of length >=4 has been formed, the player has one
         return max(lines) >= 4, mark

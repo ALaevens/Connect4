@@ -1,3 +1,6 @@
+Week of November 8:
+    Discuss games to pick. Decide on connect 4. ~1 hour
+
 Week of November 16:
     - Implement Connect4 Simulator. ~4.5 hours
         - Build simulator so that implementing a new player just requires inheritance of the base Player class
@@ -7,6 +10,11 @@ Week of November 16:
             - defaults to a 7 wide by 6 high board (based on a google image search)
             - defaults to two human players
     
-    - Particpate in group 'Pair Progamming' using VSCode live share. ~6 hours
+    - Particpate in group 'Pair Progamming' using VSCode live share. ~8 hours
 
+Week of November 23
     - Fight with negamax on my own. ~6 hours
+    - Fight with minimax and negamax with group ~10 hours
+
+Total:
+    29.5 hours
