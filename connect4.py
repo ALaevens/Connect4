@@ -38,8 +38,21 @@ class Board:
         if win:
             self.winner = winner
 
-    # negamax implementation based on wikipedia and minimax implementation
-    # that featured in https://www.youtube.com/watch?v=8392NJjj8s0&feature=youtu.be
+
+    """
+        Board.negaMax():
+            Performs negamax algorithm with alpha beta pruning.
+
+            Parameters:
+                node: the current piece
+                depth: how far to search
+                a: alpha
+                b: beta
+                player: whos turn it is
+            Return:
+                columnn, value
+                which column to play in and the value of it
+    """
     def negaMax(self, node, depth, a, b, player):
         validCols = node.getValidMoves()
         winner = node.fullWinCheck()[1]
@@ -58,9 +71,11 @@ class Board:
                 elif winner != player:
                     debugLog("\t"*depth, "Terminus Reached, Returning", -np.inf)
                     return None, -np.inf
+                # tie
                 else:
                     debugLog("\t"*depth, "Terminus Reached, Returning", 0)
                     return None, 0
+            # Max depth reached
             else:
                 eval = node.evalPosition(player)
                 debugLog("\t"*depth, "Terminus Reached, Returning eval:", eval)
@@ -69,30 +84,33 @@ class Board:
         value = -np.inf
         column = random.choice(validCols)
         colScoreMap = {}
-        for col in validCols:
-            node.simulateMove(col, player)
-            newScore = -self.negaMax(node, depth+1, -b, -a, opponent)[1]
+        for col in validCols: # loop through node children
+            node.simulateMove(col, player) # drop piece
+            newScore = -self.negaMax(node, depth+1, -b, -a, opponent)[1] # play opponent
             debugLog("\t"*depth,"[P{}] {}: {}".format(player, col, newScore))
 
+            # also keep track of scores in score -> [column list] map.
             if newScore not in colScoreMap:
                 colScoreMap[newScore] = [col]
             else:
                 colScoreMap[newScore].append(col)
             
             node.undoLastMove()
-            if newScore > value:
+            if newScore > value: # max (value, score)
                 debugLog("\t"*depth,"Update previous value {} to {} for column {}".format(value, newScore, col))
                 value = newScore
                 column = col
             
-            if value > a:
+            if value > a: # max (value, alpha)
                 a = value
             
             if a >= b and not disableAB:
                 break
         
         if depth == 0:
-            print(colScoreMap)
+            # if there are multiple equally valid choices before returning to 
+            # the initially calling player randomly select one
+            debugLog(colScoreMap)
             maxVal = max(colScoreMap)
             pick = random.choice(colScoreMap[maxVal])
             return pick, maxVal
@@ -227,7 +245,10 @@ disableAB = commandLineArgs["disableAB"]
 
 wins = [0, 0, 0] #P1, P2, Ties
 
-
+"""
+    printPerformance()
+        creates a bar graph showing the distribution of wins and ties
+"""
 def printPerformance():
     total = sum(wins)
     if total == 0:
@@ -240,9 +261,10 @@ def printPerformance():
     labels = ["P1 Wins", "P2 Wins", "Ties   "]
     fills = ["o", "+", "#"]
     for i in range(3):
+        winPercent = (wins[i]/total)*100
         barLen = math.floor((wins[i]/total)*50)
         spaceLen = 49 - barLen
-        print("{}: {}|{}  {}".format(labels[i], fills[i]*barLen, " "*spaceLen, wins[i]))
+        print("{}: {}|{}  {} ({}%)".format(labels[i], fills[i]*barLen, " "*spaceLen, wins[i], winPercent))
     
     print("\nGames PLayed:",total)
 

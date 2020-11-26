@@ -15,6 +15,7 @@ Week of November 16:
 Week of November 23
     - Fight with negamax on my own. ~6 hours
     - Fight with minimax and negamax with group ~10 hours
+    - Complete 
 
 Total:
     29.5 hours
