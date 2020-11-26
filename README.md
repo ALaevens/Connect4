@@ -28,15 +28,15 @@ This is so you could play against someone.
 
 This program also has lots of optional command line arguments. You can use -h or -help to see these.
 
-They are explained in there but i will explain them breifly.
+They are explained in there but I will explain them breifly.
 
     -test NUM	run NUM times
 
     -depth          Search depth of the program (select computer as one or two of the players)
 
-    -p1,p2		{human,random,computer} select what player should be... Random is placement at random
+    -p1,p2		{human,random,computer} select what player should be... Random is placement of pieces at random
 
-    -step		Used to watch computer v random or computer v computer games easier.. allows the stepping through program
+    -step		Used to watch computer v random or computer v computer games easier.. allows stepping through the program
 
     -debug		Used by the programmers to see what the program is actually doing (Behind the scences)
 
