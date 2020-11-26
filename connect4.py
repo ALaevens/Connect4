@@ -5,11 +5,24 @@ import random
 from node import *
 from flags import *
 
+def debugLog(*text):
+    if doDebugLog:
+        print(*text)
+
 class Board:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.currentNode = Node(np.full((self.height, self.width), MARK_EMPTY)) 
+        '''arr = [
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 2, 0, 0, 0],
+            [1, 2, 0, 2, 0, 0, 0]
+        ]'''
+        #self.currentNode = Node(np.array(arr))
+        self.currentNode = Node(np.full((self.height, self.width), MARK_EMPTY))
         self.winner = MARK_EMPTY
 
         self.history = []
@@ -32,8 +45,9 @@ class Board:
 
         #self.history.append((col, mark))
 
-        if self.currentNode.checkWin(mark) >= 4:
-            self.winner = mark
+        win, winner = self.currentNode.checkWin()
+        if win:
+            self.winner = winner
     
     def negaMax(self, node, depth, playerToMove):
         #print("negamax() depth={}, player={}".format(depth, playerToMove))
@@ -41,20 +55,23 @@ class Board:
         validCols = node.getValidMoves()
         nodeScore = self.currentNode.evalPosition(playerToMove)
         #print("nodeScore for",playerToMove,"=",nodeScore)
+
+        winStatus = self.currentNode.checkWin(playerToMove)
+        if winStatus == True:
+            return 100000
+
         if len(validCols) == 0:
-            if nodeScore < 4: # tie
+            if winStatus < 4: # tie
                 return 0
-            else:   # win on last move
-                return nodeScore
         
         if depth == maxDepth: 
             return nodeScore
 
-        bestscore = -50
+        bestscore = -np.inf
 
         for col in validCols: # simulate opponent responses
+            node.simulateMove(col, playerToMove)
             newPlayer = int(not playerToMove-1) + 1 #ewww grosss... but it works :)
-            node.simulateMove(col, newPlayer)
             score = self.negaMax(node, depth+1, newPlayer)
             
             bestscore = max(bestscore, -score)
@@ -62,6 +79,51 @@ class Board:
             node.undoLastMove()
 
         return bestscore
+    
+    def miniMax(self, node, depth, player, playerIsMax):
+        validCols = node.getValidMoves()
+        winner = node.fullWinCheck()[1]
+
+        opponent = int(not player-1) + 1 #ewww grosss... but it works :)
+        if depth == maxDepth or winner != None or len(validCols) == 0:
+            if winner != None or len(validCols) == 0:
+                if winner == MARK_P2:
+                    return None, 1000000000000000
+                elif winner == MARK_P1:
+                    return None, -100000000000000
+                else:
+                    return None, 0
+            else:
+                return None, node.evalPosition(player)
+        
+        if playerIsMax:
+            value = -np.inf
+            column = random.choice(validCols)
+            for col in validCols:
+                node.simulateMove(col, MARK_P2)
+                newScore = self.miniMax(node, depth+1, opponent, False)[1]
+                debugLog("\t"*depth,f"[MAX P{player}] {col}: {newScore}")
+                node.undoLastMove()
+                if newScore > value:
+                    debugLog("\t"*depth,f"Update previous value {value} to {newScore} for column {col}")
+                    value = newScore
+                    column = col
+            return column, value
+        
+        else:
+            value = np.inf
+            column = random.choice(validCols)
+            for col in validCols:
+                node.simulateMove(col, player)
+                newScore = self.miniMax(node, depth+1, MARK_P1, True)[1]
+                debugLog("\t"*depth,f"[MIN P{player}] {col}: {newScore}")
+                node.undoLastMove()
+                if newScore < value:
+                    debugLog("\t"*depth,f"Update previous value {value} to {newScore} for column {col}")
+                    value = newScore
+                    column = col
+            return column, value
+    
 
     """
         Board.print():
@@ -104,14 +166,15 @@ class RandomPlayer(Player):
         self.boardRef.performMove(col, self.mark)
 
 
-class ComputerPlayer(Player):    
+'''class ComputerPlayer(Player):    
     def makeMove(self):
         validCols = self.boardRef.getValidMoves()
         scores = []
         for col in validCols:
             #print("\n\n\n\nBegin Negamax for column",col)
             self.boardRef.currentNode.simulateMove(col, self.mark)
-            scores.append(self.boardRef.negaMax(self.boardRef.currentNode, 1, self.mark))
+            newPlayer = int(not self.mark-1) + 1 #ewww grosss... but it works :)
+            scores.append(self.boardRef.negaMax(self.boardRef.currentNode, 1, newPlayer))
             #print("Column {} score: {}".format(col, scores[-1]))
             self.boardRef.currentNode.undoLastMove()
         
@@ -120,7 +183,14 @@ class ComputerPlayer(Player):
         print(validCols)
         print(scores)
         print("Computer player chose column", choice)
-        self.boardRef.performMove(choice, self.mark)
+        self.boardRef.performMove(choice, self.mark)'''
+
+class ComputerPlayer(Player):    
+    def makeMove(self):
+        bestCol, score = self.boardRef.miniMax(self.boardRef.currentNode, 0, self.mark, True)
+        print("Computer player choses column",bestCol,"with score", score)
+        self.boardRef.performMove(bestCol, self.mark)
+
 
 def waitForInput():
     if doSteps:
@@ -132,8 +202,6 @@ def playOneGame(p1Type, p2Type):
     typeMap = {"human": HumanPlayer, "random": RandomPlayer, "computer": ComputerPlayer}
     board = Board(commandLineArgs['width'], commandLineArgs['height'])
     players = [typeMap[p1Type](MARK_P1, board), typeMap[p2Type](MARK_P2, board)]
-
-
 
     # Main Game loop. Play until a win or some ending condition
     while board.winner == MARK_EMPTY:
@@ -175,10 +243,11 @@ def playOneGame(p1Type, p2Type):
 # Receive commandline arguments
 parser = argparse.ArgumentParser(description="Simulate connect 4 games")
 parser.add_argument("-test", type=int, default=1, help="Define number of tests to simulate")
-parser.add_argument("-difficulty", type=int, default=2, help="Set Minimax search depth.")
+parser.add_argument("-difficulty", type=int, default=4, help="Set Minimax search depth.")
 parser.add_argument("-p1", choices=["human", "random", "computer"], default="human", help="Define player 1 type")
 parser.add_argument("-p2", choices=["human", "random", "computer"], default="human", help="define player 2 type")
 parser.add_argument("-step", action="store_true", help="Single Step through turns")
+parser.add_argument("-debug", action="store_true", help="PRINT ALL THE THINGS")
 parser.add_argument("width", type=int, nargs='?', default=7)
 parser.add_argument("height", type=int, nargs='?', default=6)
 
@@ -189,8 +258,11 @@ maxDepth = commandLineArgs["difficulty"]
 p1Type = commandLineArgs["p1"]
 p2Type = commandLineArgs["p2"]
 doSteps = commandLineArgs["step"]
+doDebugLog = commandLineArgs["debug"]
 
+wins = [0, 0, 0] #Ties, P1, P2
 for i in range(numTests): # if numTests unspecified with arguments, default to 1 and play one game
-    playOneGame(p1Type, p2Type)
+    winner = playOneGame(p1Type, p2Type)
+    wins[winner] += 1
 
-
+print(wins)
