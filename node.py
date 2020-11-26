@@ -12,36 +12,13 @@ class Node:
         self.placementHistory = []
         for move in newMoves:
             self.simulateMove(move[0], move[1])
-    
-    # https://stackoverflow.com/questions/5221236/python-my-classes-as-dict-keys-how
-    def __eq__(self, another):
-        return np.array_equal(self.board, another.board)
-    
-    def __hash__(self):
-        return hash(self.board.tobytes())
-
-    
+        
     def getValidMoves(self):
         validCols = []
         for col in range(self.width):  # loop along top row
             if self.board[0][col] == MARK_EMPTY:
                 validCols.append(col)  # mark empty spaces as valid
         return validCols
-
-    def getChildren(self):
-        nodes = []
-        validCols = self.getValidMoves()
-
-        nextPlayer = None
-        if len(self.moves) % 2 == 0:
-            nextPlayer = MARK_P1
-        else:
-            nextPlayer = MARK_P2
-
-        for col in validCols:
-            nodes.append(Node(np.copy(self.board), self.moves, [(col, nextPlayer)]))
-
-        return nodes
 
     """
         Board.inBounds():
@@ -162,45 +139,17 @@ class Node:
             pScore = max(pScore, runningTotalP)
             oScore = max(oScore, runningTotalO)
 
-            #print(f"{ls}: pScore{pScore}, oScore:{oScore}")
             return pScore, oScore
-        
-        def windowScore(ls):
-            score = 0
-            if len(ls) < 4:
-                return 0
-            
-            for i in range(0, len(ls)-3):
-                lineSeg = ls[i:i+4]
-                playerCount = np.count_nonzero(lineSeg == player)
-                emptyCount = np.count_nonzero(lineSeg == MARK_EMPTY)
-                opponentCount = 4 - (playerCount + emptyCount)
-
-                if playerCount == 4:
-                    score += 100
                 
-                if playerCount == 3 and emptyCount == 1:
-                    score += 5
-                
-                if playerCount == 2 and emptyCount == 2:
-                    score += 2
-                
-                if opponentCount == 3 and emptyCount == 1:
-                    score -= 4
-            
-            return score
-
-
-        
         def adjToScore(n):
             if n > 3:
-                return 10000
+                return 1000
             if n == 3:
-                return 100
-            if n == 2:
                 return 10
+            if n == 2:
+                return 5
             if n == 1:
-                return 1
+                return 0
             if n < 1:
                 return 0
             return n
@@ -212,18 +161,18 @@ class Node:
         
         #horizontal dont need to check 3 from edge since you couldnt make 4 then
         for row in range(height):
-            #pScore, oScore = maxAdjacent(self.board[row])
-            #score += adjToScore(pScore)  
+            pScore, oScore = maxAdjacent(self.board[row])
+            score += adjToScore(pScore)  
             #score -= adjToScore(oScore)*2
-            score += windowScore(self.board[row])
+            #score += windowScore(self.board[row])
               
 
         #verticalCheck
         for col in range(width):
-            #pScore, oScore = maxAdjacent(self.board[:, col])
-            #score += adjToScore(pScore)
+            pScore, oScore = maxAdjacent(self.board[:, col])
+            score += adjToScore(pScore)
             #score -= adjToScore(oScore)*2
-            score += windowScore(self.board[:, col])
+            #score += windowScore(self.board[:, col])
 
 
 
@@ -235,10 +184,10 @@ class Node:
         
         flippedBoard = np.fliplr(self.board)
         for i in range(-(height-1),width):
-            #pScore, oScore = maxAdjacent(flippedBoard.diagonal(i))
-            #score += adjToScore(pScore)
+            pScore, oScore = maxAdjacent(flippedBoard.diagonal(i))
+            score += adjToScore(pScore)
             #score -= adjToScore(oScore)*2
-            score += windowScore(flippedBoard.diagonal(i))
+            #score += windowScore(flippedBoard.diagonal(i))
 
 
         #DescendingDiag [0,1,2]
@@ -247,30 +196,13 @@ class Node:
         #i = 0 gives [0,4]
         #i = 1 gives [1,5]
         for i in range(-(height-1),width):
-            #pScore, oScore = maxAdjacent(self.board.diagonal(i))
-            #score += adjToScore(pScore)
+            pScore, oScore = maxAdjacent(self.board.diagonal(i))
+            score += adjToScore(pScore)
             #score -= adjToScore(oScore)*2
-            score += windowScore(self.board.diagonal(i))
+            #score += windowScore(self.board.diagonal(i))
 
         #print(f"Total score: {score}")
         return score
-
-    '''def evalPosition2(self, player):
-        sum = 0
-        for move in self.placementHistory:
-            if move[2] == player:
-                lineSize = self.checkWin(player, move)
-                if lineSize <= 1:
-                    sum+= 1
-                elif lineSize == 2:
-                    sum+= 10
-                elif lineSize == 3:
-                    sum+= 100
-                elif lineSize > 3:
-                    sum+= 1000
-        
-        return sum'''
-
 
     """
         Board.print():
