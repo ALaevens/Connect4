@@ -48,6 +48,7 @@ example of playing vs a computer at depth 4:
 
 To play, just follow the information on the screen. 
 Each column is marked, input the number of the column you wish to drop your piece in.
+Hitting enter on an empty move will forfeit the game.
 
 
 
