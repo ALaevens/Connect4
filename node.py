@@ -142,7 +142,7 @@ class Node:
                 player: the heuristic will be calculated for this player
     """
     def evalPosition(self, player):
-        def maxAdjacent(ls): # find the maximum number of adjacent player and opponent pieces in a line
+        def maxAdjacent(ls): # [UNUSED] find the maximum number of adjacent player and opponent pieces in a line
             pScore = 0
             oScore = 0
 
@@ -173,7 +173,7 @@ class Node:
 
             return pScore, oScore
                 
-        def adjToScore(n): # apply arbitrarily selected heuristic values to number of adjacent pieces
+        def adjToScore(n): # [UNUSED] apply arbitrarily selected heuristic values to number of adjacent pieces
             if n > 3:
                 return 1000
             if n == 3:
@@ -185,7 +185,32 @@ class Node:
             if n < 1:
                 return 0
             return n
-                    
+        
+
+        def lineScore(ls): # scoring heuristic based on youtube video
+            score = 0
+            if len(ls) < 4:
+                return 0
+            
+            for i in range(0, len(ls)-3):
+                lineSeg = ls[i:i+4]
+                playerCount = np.count_nonzero(lineSeg == player)
+                emptyCount = np.count_nonzero(lineSeg == MARK_EMPTY)
+                opponentCount = 4 - (playerCount + emptyCount)
+
+                if playerCount == 4:
+                    score += 100
+                
+                if playerCount == 3 and emptyCount == 1:
+                    score += 10
+                
+                if playerCount == 2 and emptyCount == 2:
+                    score += 5
+                
+                if opponentCount == 3 and emptyCount == 1:
+                    score -= 80
+            
+            return score
 
         height = self.height
         width = self.width
@@ -193,25 +218,29 @@ class Node:
         
         # horizontal dont need to check 3 from edge since you couldnt make 4 then
         for row in range(height):
-            pScore = maxAdjacent(self.board[row])[1]
-            score += adjToScore(pScore)  
+            #pScore = maxAdjacent(self.board[row])[1]
+            #score += adjToScore(pScore)  
+            score += lineScore(self.board[row])
              
 
         # verticalCheck
         for col in range(width):
-            pScore = maxAdjacent(self.board[:, col])[1]
-            score += adjToScore(pScore)
+            #pScore = maxAdjacent(self.board[:, col])[1]
+            #score += adjToScore(pScore)
+            score += lineScore(self.board[:, col])
 
         # ascending diagonals        
         flippedBoard = np.fliplr(self.board)
         for i in range(-(height-1),width):
-            pScore = maxAdjacent(flippedBoard.diagonal(i))[1]
-            score += adjToScore(pScore)
+            #pScore = maxAdjacent(flippedBoard.diagonal(i))[1]
+            #score += adjToScore(pScore)
+            score += lineScore(flippedBoard.diagonal(i))
 
         # Descending diagonals
         for i in range(-(height-1),width):
-            pScore = maxAdjacent(self.board.diagonal(i))[1]
-            score += adjToScore(pScore)
+            #pScore = maxAdjacent(self.board.diagonal(i))[1]
+            #score += adjToScore(pScore)
+            score += lineScore(self.board.diagonal(i))
             
         return score
 

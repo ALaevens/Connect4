@@ -266,7 +266,7 @@ def printPerformance():
         spaceLen = 49 - barLen
         print("{}: {}|{}  {} ({}%)".format(labels[i], fills[i]*barLen, " "*spaceLen, wins[i], winPercent))
     
-    print("\nGames PLayed:",total)
+    print("\nGames Played:",total)
 
 
 for i in range(numTests): # if numTests unspecified with arguments, default to 1 and play one game
